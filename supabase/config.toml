@@ -1,0 +1,17 @@
+project_id = "aavbqimuynxnbyrtbkwj"
+
+[auth]
+enable_anonymous_sign_ins = true
+
+[functions.whoop-start]
+verify_jwt = true
+
+[functions.whoop-callback]
+# WHOOP redirects the browser here, so there is no Supabase JWT on this request.
+verify_jwt = false
+
+[functions.whoop-sync]
+verify_jwt = true
+
+[functions.whoop-disconnect]
+verify_jwt = true

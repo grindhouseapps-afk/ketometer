@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "KetoMeter",
+    "slug": "ketometer",
+    "owner": "grindhouseapps",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "ketometer",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#141414",
+    "ios": {
+      "bundleIdentifier": "com.grindhouseapps.ketometer",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.grindhouseapps.ketometer",
+      "adaptiveIcon": {
+        "backgroundColor": "#141414",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "expo-status-bar",
+      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 120, "backgroundColor": "#141414" }],
+      ["expo-notifications", { "color": "#FF6A13" }]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
