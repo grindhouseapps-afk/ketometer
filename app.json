@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "KetoMeter",
+    "slug": "ketometer",
+    "owner": "grindhouseapps",
+    "scheme": "ketometer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#141414",
+    "ios": {
+      "bundleIdentifier": "com.grindhouseapps.ketometer",
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "KetoMeter reads your active and resting calories, workouts, weight and body fat % to estimate how close you are to fat burn and your body fat goal.",
+        "NSHealthUpdateUsageDescription": "KetoMeter can save the body readings you enter to Apple Health."
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.grindhouseapps.ketometer"
+        ]
+      },
+      "appleTeamId": "5W94XJX9NC"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#141414",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF6A13"
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "KetoMeter reads your active and resting calories, workouts, weight and body fat % to estimate how close you are to fat burn and your body fat goal.",
+          "NSHealthUpdateUsageDescription": "KetoMeter can save the body readings you enter to Apple Health.",
+          "background": true
+        }
+      ],
+      "@bacons/apple-targets"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6dea5c69-da00-4d74-b13b-61295025f80a"
+      },
+      "router": {}
+    }
+  }
+}

@@ -1,0 +1,10 @@
+project_id = "aavbqimuynxnbyrtbkwj"
+
+[functions.whoop-authorize]
+verify_jwt = false
+
+[functions.whoop-callback]
+verify_jwt = false
+
+[functions.whoop-sync]
+verify_jwt = false

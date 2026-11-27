@@ -154,6 +154,7 @@ export function simulate(input: EngineInput): EngineState {
   const history: { t: number; rest: number; active: number }[] = [];
 
   let fi = 0;
+  let bi = 0; // first burn sample that may still overlap
   const stepMs = STEP_MINUTES * MIN;
   for (let t = start; t < end; t += stepMs) {
     const t2 = Math.min(end, t + stepMs);
@@ -188,7 +189,9 @@ export function simulate(input: EngineInput): EngineState {
     let total = 0;
     let active = 0;
     let covered = 0;
-    for (const b of burns) {
+    while (bi < burns.length && +burns[bi].end <= t) bi++;
+    for (let k = bi; k < burns.length; k++) {
+      const b = burns[k];
       if (+b.start >= t2) break;
       const ov = overlapMin(t, t2, +b.start, +b.end);
       if (ov <= 0) continue;
