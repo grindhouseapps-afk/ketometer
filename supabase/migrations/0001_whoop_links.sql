@@ -12,3 +12,6 @@ create table if not exists public.whoop_links (
 );
 alter table public.whoop_links enable row level security;
 -- No policies: anon/authenticated clients have no access.
+-- Newer Supabase projects don't grant table privileges to service_role automatically.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.whoop_links to service_role;
