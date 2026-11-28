@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { C, F, type Weight } from '@/theme';
 
 export function T({ w = 400, size = 15, color = C.text, style, ...rest }: TextProps & { w?: Weight; size?: number; color?: string }) {
@@ -55,6 +56,22 @@ type BtnProps = Omit<PressableProps, 'children' | 'style'> & {
   style?: StyleProp<ViewStyle>;
 };
 
+/** Orange gradient fill with a soft glow, used behind primary buttons. */
+export function GlowFill({ radius = 16 }: { radius?: number }) {
+  return (
+    <Svg style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+      <Defs>
+        <LinearGradient id="km-glow" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#FFA048" />
+          <Stop offset="0.55" stopColor="#FF6A13" />
+          <Stop offset="1" stopColor="#F2510A" />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100" height="100" fill="url(#km-glow)" />
+    </Svg>
+  );
+}
+
 export function Button({ title, kind = 'primary', disabled, style, onPress, ...rest }: BtnProps) {
   const primary = kind === 'primary';
   return (
@@ -67,23 +84,35 @@ export function Button({ title, kind = 'primary', disabled, style, onPress, ...r
       }}
       style={({ pressed }) => [
         {
-          height: kind === 'ghost' ? 44 : 52,
-          borderRadius: 16,
+          height: kind === 'ghost' ? 44 : 56,
+          borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: primary ? C.accent : 'transparent',
+          overflow: primary ? 'hidden' : 'visible',
+          backgroundColor: 'transparent',
           borderWidth: kind === 'outline' ? 1 : 0,
           borderColor: C.line,
-          opacity: disabled ? 0.35 : pressed ? 0.8 : 1,
+          opacity: disabled ? 0.4 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
         },
         style,
       ]}
       {...rest}
     >
-      <T w={primary ? 600 : 500} size={primary ? 17 : kind === 'ghost' ? 15 : 16} color={primary ? C.bg : kind === 'ghost' ? C.muted : C.text}>
+      {primary ? <GlowFill /> : null}
+      <T w={primary ? 700 : 500} size={primary ? 17 : kind === 'ghost' ? 15 : 16} color={primary ? '#1A0A00' : kind === 'ghost' ? C.muted : C.text}>
         {title}
       </T>
     </Pressable>
+  );
+}
+
+/** Wraps a primary Button with an outer glow (shadows are clipped by overflow on the button itself). */
+export function Glow({ children, on = true }: { children: ReactNode; on?: boolean }) {
+  return (
+    <View style={on ? { shadowColor: C.accent, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, borderRadius: 18 } : undefined}>
+      {children}
+    </View>
   );
 }
 

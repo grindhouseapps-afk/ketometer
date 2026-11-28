@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { Bar, Button, Card, Label, Option, T } from '@/components/ui';
+import { Bar, Button, Card, Glow, Label, Option, Row, T } from '@/components/ui';
 import { FlameShape, Gauge } from '@/components/Gauge';
-import { C, F } from '@/theme';
+import { C } from '@/theme';
+import { Wheel, nearestIndex, range } from '@/components/Wheel';
+import { Features } from '@/components/Features';
 import { useStore } from '@/lib/store';
 import { computeMeter } from '@/lib/useMeter';
 import { connectWhoop } from '@/lib/whoop';
@@ -16,7 +18,8 @@ type Step =
   | { type: 'hero'; key: string; title: string; body: string; card?: string; flame?: boolean; cta?: string; secondary?: string; nav?: boolean }
   | { type: 'choice'; key: string; title: string; sub?: string; options: string[]; multi?: boolean; disabled?: number[]; optionSubs?: Record<number, string> }
   | { type: 'value'; key: ValueKey; title: string; sub?: string; step: number; min: number; max: number; fmt: 'year' | 'height' | 'lb' | 'pct' }
-  | { type: 'plan'; key: 'plan' };
+  | { type: 'plan'; key: 'plan' }
+  | { type: 'features'; key: 'features' };
 
 type ValueKey = 'born' | 'height' | 'weight' | 'bf' | 'goalbf';
 
@@ -38,9 +41,13 @@ const STEPS: Step[] = [
   { type: 'choice', key: 'source', title: 'Where should your burn come from?', sub: 'One source at a time, so nothing counts twice.', options: ['WHOOP', 'Apple Health', "I'll log activity myself"], disabled: [1], optionSubs: { 1: 'Coming soon' } },
   { type: 'hero', key: 'notify', title: 'Nudges that keep you on track', body: 'A simple plan each morning, a protein check in the afternoon, and a heads-up the moment you hit fat burn. Never spam.', card: 'Keep net carbs under 25 g today. Protein goal: 1 g per lb of lean mass.', cta: 'Turn on notifications', secondary: 'Not now' },
   { type: 'plan', key: 'plan' },
+  { type: 'features', key: 'features' },
 ];
 
-const DEFAULTS: Record<ValueKey, number> = { born: 1990, height: 70, weight: 180, bf: 25, goalbf: 18 };
+/** A realistic first goal: about a quarter below the current body fat, on a half-point. */
+const suggestGoal = (bf: number) => Math.max(3, Math.min(bf - 0.5, Math.round(bf * 0.75 * 2) / 2));
+
+const DEFAULTS: Record<ValueKey, number> = { born: 1990, height: 70, weight: 180, bf: 25, goalbf: suggestGoal(25) };
 
 export default function Onboarding() {
   const insets = useSafeAreaInsets();
@@ -48,6 +55,7 @@ export default function Onboarding() {
   const [i, setI] = useState(0);
   const [picks, setPicks] = useState<Record<string, number[]>>({});
   const [vals, setVals] = useState<Record<ValueKey, number>>(DEFAULTS);
+  const [goalTouched, setGoalTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const s = STEPS[i];
@@ -110,12 +118,22 @@ export default function Onboarding() {
     if (s.key === 'notify') {
       await requestNotifications().catch(() => {});
     }
-    if (s.type === 'plan') {
+    if (s.type === 'features') {
       store.set({ onboarded: true });
       return;
     }
     go(1);
   };
+
+  const onValue = useCallback(
+    (v: number) => {
+      if (s.key === 'goalbf') setGoalTouched(true);
+      // Keep the goal below the current body fat; until the user picks one, suggest it.
+      if (s.key === 'bf') setVals((cur) => ({ ...cur, bf: v, goalbf: !goalTouched || cur.goalbf >= v ? suggestGoal(v) : cur.goalbf }));
+      else setVals((cur) => ({ ...cur, [s.key]: v }));
+    },
+    [s.key, goalTouched],
+  );
 
   const plan = useMemo(() => (s.type === 'plan' ? computeMeter() : null), [s.type]);
 
@@ -198,7 +216,8 @@ export default function Onboarding() {
             <ValueStep
               step={s}
               value={vals[s.key]}
-              onChange={(v) => setVals({ ...vals, [s.key]: v })}
+              max={s.key === 'goalbf' ? Math.round((vals.bf - 0.1) * 10) / 10 : undefined}
+              onChange={onValue}
               hint={
                 s.key === 'goalbf'
                   ? goalOk
@@ -235,6 +254,25 @@ export default function Onboarding() {
                   <T size={15} color={C.accentSoft} style={{ alignSelf: 'center' }}>
                     {plan.stage === 2 ? "You're already in fat burn" : plan.hoursToFatBurn != null ? `Fat burn in ~${hoursLabel(plan.hoursToFatBurn)} if you keep fasting` : 'Keep carbs low to reach fat burn'}
                   </T>
+                  <Card style={{ gap: 10 }}>
+                    <Row>
+                      <T size={14}>Liver tank</T>
+                      <T size={14}>
+                        {n0(plan.liverKcal)} / {n0(plan.liverCapKcal)} kcal
+                      </T>
+                    </Row>
+                    <Bar fraction={plan.liverKcal / plan.liverCapKcal} />
+                    <Row>
+                      <T size={14}>Muscle tank</T>
+                      <T size={14}>
+                        {n0(plan.muscleKcal)} / {n0(plan.muscleCapKcal)} kcal
+                      </T>
+                    </Row>
+                    <Bar fraction={plan.muscleKcal / plan.muscleCapKcal} color={C.ember} />
+                    <T size={12} color={C.muted} style={{ lineHeight: 17 }}>
+                      Fat burn starts when your liver tank is empty. Your muscle tank fuels workouts and doesn't block fat burn.
+                    </T>
+                  </Card>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                     <PlanTile label="FAT TO GOAL" value={n0(plan.fatToGoalKcal ?? 0)} unit="kcal" />
                     <PlanTile label="PROTEIN" value={`${plan.proteinTargetG} g`} unit="/ day" />
@@ -247,6 +285,7 @@ export default function Onboarding() {
               )}
             </>
           ) : null}
+          {s.type === 'features' ? <Features /> : null}
           {note ? (
             <T size={13} color={C.accentSoft}>
               {note}
@@ -255,7 +294,9 @@ export default function Onboarding() {
         </ScrollView>
 
         <View style={{ gap: 8 }}>
-          <Button title={busy ? 'Connecting…' : s.type === 'hero' && s.cta ? s.cta : 'Continue'} disabled={!canNext || busy} onPress={next} />
+          <Glow on={canNext && !busy}>
+            <Button title={busy ? 'Connecting…' : s.type === 'hero' && s.cta ? s.cta : s.type === 'features' ? 'Start my plan' : 'Continue'} disabled={!canNext || busy} onPress={next} />
+          </Glow>
           {s.type === 'hero' && s.secondary ? <Button kind="ghost" title={s.secondary} onPress={() => go(1)} /> : null}
         </View>
       </View>
@@ -280,7 +321,6 @@ function PlanTile({ label, value, unit }: { label: string; value: string; unit: 
 function fmtValue(fmt: string, v: number) {
   if (fmt === 'year') return String(v);
   if (fmt === 'height') return heightLabel(v);
-  if (fmt === 'lb') return v.toFixed(1);
   return v.toFixed(1);
 }
 
@@ -289,28 +329,19 @@ function ValueStep({
   value,
   onChange,
   hint,
+  max,
 }: {
   step: Extract<Step, { type: 'value' }>;
   value: number;
   onChange: (v: number) => void;
   hint?: { text: string; color: string };
+  max?: number;
 }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const clamp = (v: number) => Math.max(step.min, Math.min(step.max, Math.round(v * 10) / 10));
-  const bump = (d: number) => onChange(clamp(value + d * step.step));
-  const editable = step.fmt !== 'height';
-  const unit = step.fmt === 'lb' ? 'lb' : step.fmt === 'pct' ? '%' : '';
-  const Btn = ({ label, d }: { label: string; d: number }) => (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={d < 0 ? 'Decrease' : 'Increase'}
-      onPress={() => bump(d)}
-      onLongPress={() => bump(d * 10)}
-      style={({ pressed }) => ({ width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}
-    >
-      <T size={26}>{label}</T>
-    </Pressable>
-  );
+  const values = useMemo(() => range(step.min, Math.max(step.min, max ?? step.max), step.step), [step.min, step.max, step.step, max]);
+  const idx = nearestIndex(values, value);
+  const format = useCallback((v: number) => fmtValue(step.fmt, v), [step.fmt]);
+  const onIdx = useCallback((i: number) => onChange(values[i]), [onChange, values]);
+  const unit = step.fmt === 'lb' ? 'lb' : step.fmt === 'pct' ? '%' : undefined;
   return (
     <>
       <T w={600} size={26} style={{ lineHeight: 31 }}>
@@ -321,41 +352,10 @@ function ValueStep({
           {step.sub}
         </T>
       ) : null}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20, minHeight: 260 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-          <Btn label="−" d={-1} />
-          <View style={{ minWidth: 170, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
-            {editable ? (
-              <TextInput
-                accessibilityLabel={step.title}
-                value={draft ?? fmtValue(step.fmt, value)}
-                onChangeText={setDraft}
-                onEndEditing={() => {
-                  const v = Number((draft ?? '').replace(',', '.'));
-                  if (draft != null && Number.isFinite(v)) onChange(clamp(v));
-                  setDraft(null);
-                }}
-                keyboardType="decimal-pad"
-                keyboardAppearance="dark"
-                selectionColor={C.accent}
-                style={{ color: C.text, fontFamily: F[300], fontSize: 48, textAlign: 'center', minWidth: 120, padding: 0 }}
-              />
-            ) : (
-              <T w={300} size={48}>
-                {fmtValue(step.fmt, value)}
-              </T>
-            )}
-            {unit ? (
-              <T w={300} size={24} color={C.muted}>
-                {' '}
-                {unit}
-              </T>
-            ) : null}
-          </View>
-          <Btn label="+" d={1} />
-        </View>
+      <View style={{ flex: 1, justifyContent: 'center', gap: 20, minHeight: 320 }}>
+        <Wheel key={`${step.key}-${values.length}`} label={step.title} values={values} index={idx} onChange={onIdx} format={format} unit={unit} width={240} />
         <T size={14} color={hint?.color ?? C.muted} style={{ textAlign: 'center', minHeight: 20 }}>
-          {hint?.text ?? (step.step < 1 ? 'Tap the number to type it. Hold − or + to jump.' : '')}
+          {hint?.text ?? ''}
         </T>
       </View>
     </>
