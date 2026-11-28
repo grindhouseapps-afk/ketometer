@@ -23,7 +23,7 @@ Grind House Apps · iOS (Expo SDK 58, expo-router, TypeScript). Bundle ID `com.g
 1. Auth → enable **Anonymous sign-ins**.
 2. Run `supabase/migrations/20261126000000_whoop.sql`.
 3. Secrets: `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET` (optional `WHOOP_REDIRECT_URI`).
-4. Deploy: `supabase functions deploy whoop-start whoop-callback whoop-sync whoop-disconnect --project-ref aavbqimuynxnbyrtbkwj` (`whoop-callback` has `verify_jwt = false` in `supabase/config.toml`).
+4. Deploy: `supabase functions deploy whoop-authorize whoop-callback whoop-sync whoop-disconnect --project-ref aavbqimuynxnbyrtbkwj` (`whoop-callback` has `verify_jwt = false` in `supabase/config.toml`).
 5. WHOOP developer dashboard redirect URL: `https://aavbqimuynxnbyrtbkwj.supabase.co/functions/v1/whoop-callback`. Scopes: `offline read:cycles read:workout read:body_measurement`.
 
 WHOOP cycles become burn samples: each workout is its own sample, the rest of the cycle's calories spread over the time outside workouts. A cycle in progress ends at its last update, and the engine fills the time since with resting burn.

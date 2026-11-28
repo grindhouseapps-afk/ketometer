@@ -6,7 +6,7 @@ enable_anonymous_sign_ins = true
 # Every function checks the user's token itself (requireUser), which works with
 # Supabase's new publishable/secret keys and JWT signing keys.
 
-[functions.whoop-start]
+[functions.whoop-authorize]
 verify_jwt = false
 
 [functions.whoop-callback]

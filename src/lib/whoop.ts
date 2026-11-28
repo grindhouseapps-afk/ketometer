@@ -7,7 +7,7 @@ const RETURN_URL = 'ketometer://whoop';
 
 /** Opens WHOOP sign-in. Resolves true when the account is linked. */
 export async function connectWhoop(): Promise<boolean> {
-  const { url } = await callFunction<{ url: string }>('whoop-start');
+  const { url } = await callFunction<{ url: string }>('whoop-authorize');
   const res = await WebBrowser.openAuthSessionAsync(url, RETURN_URL);
   if (res.type !== 'success') return false;
   const ok = res.url.includes('status=connected');
