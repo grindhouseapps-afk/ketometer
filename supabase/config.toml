@@ -3,15 +3,18 @@ project_id = "aavbqimuynxnbyrtbkwj"
 [auth]
 enable_anonymous_sign_ins = true
 
+# Every function checks the user's token itself (requireUser), which works with
+# Supabase's new publishable/secret keys and JWT signing keys.
+
 [functions.whoop-start]
-verify_jwt = true
+verify_jwt = false
 
 [functions.whoop-callback]
 # WHOOP redirects the browser here, so there is no Supabase JWT on this request.
 verify_jwt = false
 
 [functions.whoop-sync]
-verify_jwt = true
+verify_jwt = false
 
 [functions.whoop-disconnect]
-verify_jwt = true
+verify_jwt = false

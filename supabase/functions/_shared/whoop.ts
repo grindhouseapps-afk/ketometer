@@ -14,7 +14,19 @@ export const env = (k: string) => {
 
 export const redirectUri = () => Deno.env.get('WHOOP_REDIRECT_URI') ?? `${env('SUPABASE_URL')}/functions/v1/whoop-callback`;
 
-export const admin = (): SupabaseClient => createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
+/** Service key: legacy service_role, or the new `sb_secret_` key when legacy keys are off. */
+function serviceKey() {
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy) return legacy;
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    const k = keys.default ?? Object.values(keys)[0];
+    if (typeof k === 'string') return k;
+  } catch { /* fall through */ }
+  return env('SUPABASE_SECRET_KEY');
+}
+
+export const admin = (): SupabaseClient => createClient(env('SUPABASE_URL'), serviceKey(), { auth: { persistSession: false } });
 
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
